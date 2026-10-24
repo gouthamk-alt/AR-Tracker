@@ -1,0 +1,6 @@
+{
+  "name": "Property Inspection Tracker & Analytics",
+  "description": "Comprehensive client-side analytics dashboard for property inspections, tracking inspectors, agencies, workload, and data quality.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
