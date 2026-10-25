@@ -29,6 +29,12 @@ export const TYPE_COLORS: Record<string, { hex: string; bg: string; text: string
     text: 'text-purple-700 dark:text-purple-300',
     border: 'border-purple-300 dark:border-purple-800',
   },
+  'COMMERCIAL': {
+    hex: '#e11d48', // Rose-600
+    bg: 'bg-rose-50 dark:bg-rose-950/40',
+    text: 'text-rose-700 dark:text-rose-300',
+    border: 'border-rose-300 dark:border-rose-800',
+  },
 };
 
 export const FALLBACK_TYPE_COLOR = {

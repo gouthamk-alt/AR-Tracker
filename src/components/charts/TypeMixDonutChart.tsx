@@ -56,7 +56,7 @@ export const TypeMixDonutChart: React.FC<TypeMixDonutChartProps> = ({
   return (
     <ChartCard
       title="Inspection Type Distribution"
-      subtitle="Proportion of PCR, Routine, Inventory, and Final Bond jobs (click slice to filter)"
+      subtitle="Proportion of PCR, Routine, Inventory, Final Bond, and Commercial jobs (click slice to filter)"
       csvFilename="type_mix"
       csvHeaders={csvHeaders}
       csvRows={csvRows}

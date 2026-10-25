@@ -168,7 +168,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     });
   };
 
-  const inspectionTypes = ['PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE'];
+  const inspectionTypes = ['PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'COMMERCIAL'];
 
   return (
     <div className="sticky top-16 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs transition-colors py-3">

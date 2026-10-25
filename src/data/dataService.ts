@@ -176,6 +176,8 @@ export function processRawRows(rawRows: RawInspectionRow[]): { rows: InspectionR
     let type = 'PCR';
     if (upperColF.includes('ROUTINE')) {
       type = 'ROUTINE';
+    } else if (upperColF.includes('COMMERCIAL') || upperColF === 'COMM') {
+      type = 'COMMERCIAL';
     } else if (upperColF.includes('PHOTOS ONLY') || upperColF === 'PCR PHOTOS') {
       type = 'PCR PHOTOS ONLY';
     } else if (upperColF === 'FINAL BOND' || upperColF === 'BOND') {

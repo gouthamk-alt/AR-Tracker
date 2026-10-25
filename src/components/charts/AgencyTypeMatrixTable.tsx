@@ -43,7 +43,7 @@ export const AgencyTypeMatrixTable: React.FC<AgencyTypeMatrixTableProps> = ({
       }
     });
 
-    const standardTypes = ['PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE'];
+    const standardTypes = ['PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'COMMERCIAL'];
     const otherTypes = Array.from(typeSet).filter((t) => !standardTypes.includes(t));
     const allTypes = [...standardTypes.filter((t) => typeSet.has(t)), ...otherTypes];
 

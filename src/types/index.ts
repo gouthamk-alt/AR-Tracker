@@ -1,4 +1,4 @@
-export type InspectionType = 'PCR' | 'PCR PHOTOS ONLY' | 'INVENTORY' | 'FINAL BOND' | 'ROUTINE' | string;
+export type InspectionType = 'PCR' | 'PCR PHOTOS ONLY' | 'INVENTORY' | 'FINAL BOND' | 'ROUTINE' | 'COMMERCIAL' | string;
 export type InspectionStatus = 'Open' | 'Done' | 'Cancelled' | 'Duplicate' | 'Ignored' | string;
 export type InspectionSource = 'Date list' | 'Routine' | string;
 

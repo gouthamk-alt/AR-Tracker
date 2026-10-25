@@ -38,6 +38,7 @@ interface AgencyReportItem {
   inventory: number;
   finalBond: number;
   routine: number;
+  commercial: number;
   total: number;
   pctOfTotal: number;
 }
@@ -61,6 +62,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
       inventory: number;
       finalBond: number;
       routine: number;
+      commercial: number;
       total: number;
     }> = {};
 
@@ -76,6 +78,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
           inventory: 0,
           finalBond: 0,
           routine: 0,
+          commercial: 0,
           total: 0,
         };
       }
@@ -91,6 +94,8 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
         map[agencyName].finalBond++;
       } else if (t === 'ROUTINE' || t.includes('ROUTINE') || r.source === 'Routine') {
         map[agencyName].routine++;
+      } else if (t === 'COMMERCIAL' || t.includes('COMMERCIAL')) {
+        map[agencyName].commercial++;
       } else {
         // Fallback default
         map[agencyName].pcr++;
@@ -105,7 +110,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
       const pctOfTotal = grandTotal > 0 ? +((counts.total / grandTotal) * 100).toFixed(1) : 0;
 
       // Track max for heat color scaling
-      const itemsToCheck = [counts.pcr, counts.pcrPhotos, counts.inventory, counts.finalBond, counts.routine];
+      const itemsToCheck = [counts.pcr, counts.pcrPhotos, counts.inventory, counts.finalBond, counts.routine, counts.commercial];
       itemsToCheck.forEach((val) => {
         if (val > maxCount) maxCount = val;
       });
@@ -118,6 +123,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
         inventory: counts.inventory,
         finalBond: counts.finalBond,
         routine: counts.routine,
+        commercial: counts.commercial,
         total: counts.total,
         pctOfTotal,
       };
@@ -129,6 +135,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
     let totInventory = 0;
     let totFinalBond = 0;
     let totRoutine = 0;
+    let totCommercial = 0;
 
     list.forEach((item) => {
       totPcr += item.pcr;
@@ -136,6 +143,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
       totInventory += item.inventory;
       totFinalBond += item.finalBond;
       totRoutine += item.routine;
+      totCommercial += item.commercial;
     });
 
     const totCombined = totPcr + totPcrPhotos;
@@ -148,6 +156,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
       inventory: totInventory,
       finalBond: totFinalBond,
       routine: totRoutine,
+      commercial: totCommercial,
       total: grandTotal,
       pctOfTotal: 100.0,
     };
@@ -220,8 +229,8 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
 
   const handleExportCsv = () => {
     const headers = combinePcr
-      ? ['Agency', 'PCR (incl. photos only)', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'Total', '% of Total']
-      : ['Agency', 'PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'Total', '% of Total'];
+      ? ['Agency', 'PCR (incl. photos only)', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'COMMERCIAL', 'Total', '% of Total']
+      : ['Agency', 'PCR', 'PCR PHOTOS ONLY', 'INVENTORY', 'FINAL BOND', 'ROUTINE', 'COMMERCIAL', 'Total', '% of Total'];
 
     const exportRows = filteredAgencies.map((item) =>
       combinePcr
@@ -231,6 +240,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
             item.inventory,
             item.finalBond,
             item.routine,
+            item.commercial,
             item.total,
             `${item.pctOfTotal}%`,
           ]
@@ -241,6 +251,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
             item.inventory,
             item.finalBond,
             item.routine,
+            item.commercial,
             item.total,
             `${item.pctOfTotal}%`,
           ]
@@ -255,6 +266,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
             totalsRow.inventory,
             totalsRow.finalBond,
             totalsRow.routine,
+            totalsRow.commercial,
             totalsRow.total,
             '100%',
           ]
@@ -265,6 +277,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
             totalsRow.inventory,
             totalsRow.finalBond,
             totalsRow.routine,
+            totalsRow.commercial,
             totalsRow.total,
             '100%',
           ]
@@ -408,6 +421,12 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
                   ROUTINE {renderSortIndicator('routine')}
                 </th>
                 <th
+                  onClick={() => handleSort('commercial')}
+                  className="px-3 py-2.5 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap"
+                >
+                  COMMERCIAL {renderSortIndicator('commercial')}
+                </th>
+                <th
                   onClick={() => handleSort('total')}
                   className="px-3 py-2.5 text-center font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 whitespace-nowrap"
                 >
@@ -424,7 +443,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {filteredAgencies.length === 0 ? (
                 <tr>
-                  <td colSpan={combinePcr ? 7 : 8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={combinePcr ? 8 : 9} className="px-4 py-8 text-center text-slate-400">
                     No agencies match "{searchQuery}"
                   </td>
                 </tr>
@@ -475,6 +494,11 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
                         {item.routine > 0 ? item.routine : '—'}
                       </div>
                     </td>
+                    <td className="p-1 text-center">
+                      <div className={`py-1 rounded-md ${getHeatShade(item.commercial)}`}>
+                        {item.commercial > 0 ? item.commercial : '—'}
+                      </div>
+                    </td>
 
                     <td className="px-3 py-2 text-center font-bold text-slate-900 dark:text-white">
                       {item.total}
@@ -503,6 +527,7 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
                 <td className="px-3 py-2.5 text-center font-mono">{totalsRow.inventory}</td>
                 <td className="px-3 py-2.5 text-center font-mono">{totalsRow.finalBond}</td>
                 <td className="px-3 py-2.5 text-center font-mono">{totalsRow.routine}</td>
+                <td className="px-3 py-2.5 text-center font-mono">{totalsRow.commercial}</td>
                 <td className="px-3 py-2.5 text-center font-mono text-sky-600 dark:text-sky-400">
                   {totalsRow.total}
                 </td>
@@ -640,6 +665,9 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
                         <div className="flex justify-between gap-4 text-purple-600 dark:text-purple-400">
                           <span>ROUTINE:</span> <span className="font-semibold">{d.routine}</span>
                         </div>
+                        <div className="flex justify-between gap-4 text-rose-600 dark:text-rose-400">
+                          <span>COMMERCIAL:</span> <span className="font-semibold">{d.commercial}</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -693,6 +721,13 @@ export const AgencyBreakdownSection: React.FC<AgencyBreakdownSectionProps> = ({
                 name="ROUTINE"
                 stackId="agencyBreakdown"
                 fill={TYPE_COLORS['ROUTINE'].hex}
+                cursor="pointer"
+              />
+              <Bar
+                dataKey="commercial"
+                name="COMMERCIAL"
+                stackId="agencyBreakdown"
+                fill={TYPE_COLORS['COMMERCIAL'].hex}
                 radius={[0, 4, 4, 0]}
                 cursor="pointer"
               />

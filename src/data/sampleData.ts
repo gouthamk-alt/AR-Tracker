@@ -109,12 +109,13 @@ export function generateSampleData(): RawInspectionRow[] {
     if (isRoutine) {
       type = 'ROUTINE';
     } else {
-      const typeRand = i % 7;
+      const typeRand = i % 8;
       if (typeRand === 0 || typeRand === 1) type = 'PCR';
       else if (typeRand === 2) type = 'PCR PHOTOS ONLY';
       else if (typeRand === 3) type = 'INVENTORY';
       else if (typeRand === 4) type = 'FINAL BOND';
-      else if (typeRand === 5) type = ''; // blank type will default to PCR
+      else if (typeRand === 5) type = 'COMMERCIAL';
+      else if (typeRand === 6) type = ''; // blank type will default to PCR
       else type = 'PCR';
     }
 
