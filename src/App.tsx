@@ -35,6 +35,18 @@ export default function App() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [qualityPanelOpen, setQualityPanelOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(false);
+  // Excluded counts & Data quality tools hidden by default
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const handleToggleDiagnostics = () => {
+    setShowDiagnostics((prev) => {
+      const next = !prev;
+      if (!next) {
+        setQualityPanelOpen(false);
+      }
+      return next;
+    });
+  };
 
   // Dark/Light theme state
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -263,6 +275,8 @@ export default function App() {
         duplicateCount={duplicateCount}
         ignoredCount={ignoredCount}
         onFilterOnlyStatus={filterOnlyStatus}
+        showDiagnostics={showDiagnostics}
+        onToggleDiagnostics={handleToggleDiagnostics}
       />
 
       {/* Sticky Filter Bar */}
@@ -283,6 +297,8 @@ export default function App() {
         setSearchQuery={setSearchQuery}
         toggleOnlyIssues={toggleOnlyIssues}
         activeFilterCount={activeFilterCount}
+        showDiagnostics={showDiagnostics}
+        onToggleDiagnostics={handleToggleDiagnostics}
       />
 
       {/* Main Content Body */}

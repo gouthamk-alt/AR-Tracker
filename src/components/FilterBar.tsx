@@ -11,7 +11,9 @@ import {
   Briefcase,
   Layers,
   CheckCircle2,
-  Check
+  Check,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { FilterState, DatePreset, InspectionRow } from '../types';
 import { getPresetDates, getPerthTodayString, formatPerthDisplayDate } from '../utils/dateUtils';
@@ -36,6 +38,8 @@ interface FilterBarProps {
   setSearchQuery: (val: string) => void;
   toggleOnlyIssues: () => void;
   activeFilterCount: number;
+  showDiagnostics?: boolean;
+  onToggleDiagnostics?: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -55,6 +59,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   setSearchQuery,
   toggleOnlyIssues,
   activeFilterCount,
+  showDiagnostics = false,
+  onToggleDiagnostics,
 }) => {
   // Real current date in Australia/Perth timezone (never uses dataset max date)
   const perthTodayStr = useMemo(() => getPerthTodayString(), []);
@@ -362,104 +368,133 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             icon={<CheckCircle2 className="w-3.5 h-3.5" />}
           />
 
-          {/* Toggle: Include cancelled / duplicate / ignored & Quick counts */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Simple Icon Toggle for Excluded & Data Quality in FilterBar */}
+          {onToggleDiagnostics && (
             <button
               type="button"
-              onClick={toggleIncludeExcludedStatuses}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                filters.includeExcludedStatuses
-                  ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 shadow-2xs'
-                  : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              onClick={onToggleDiagnostics}
+              className={`p-1.5 rounded-lg border transition-all text-xs flex items-center gap-1.5 ${
+                showDiagnostics
+                  ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
+                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
               }`}
-              title="Toggle inclusion of Cancelled, Duplicate, and Ignored rows across dashboard"
+              title={
+                showDiagnostics
+                  ? "Hide excluded & data quality filters"
+                  : `Show excluded & data quality filters (${cancelledCount + duplicateCount + ignoredCount} excluded)`
+              }
+              aria-label={showDiagnostics ? "Hide excluded & data quality" : "Show excluded & data quality"}
             >
-              <div
-                className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
-                  filters.includeExcludedStatuses
-                    ? 'bg-amber-600 border-amber-600 text-white'
-                    : 'border-slate-400 dark:border-slate-600'
-                }`}
-              >
-                {filters.includeExcludedStatuses && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-              </div>
-              <span>Include cancelled / duplicate / ignored</span>
+              {showDiagnostics ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              <span className="hidden lg:inline text-[11px] font-medium">
+                {showDiagnostics ? "Hide diagnostics" : "Diagnostics"}
+              </span>
             </button>
+          )}
 
-            {/* Small counts near the filters: e.g. "13 cancelled · 72 duplicate · 0 ignored" */}
-            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800/80 text-[11px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
-              <button
-                type="button"
-                onClick={() => {
-                  if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'cancelled') {
-                    updateFilters({ statuses: [] });
-                  } else {
-                    updateFilters({ statuses: ['Cancelled'] });
-                  }
-                }}
-                className={`hover:text-rose-600 font-semibold transition-colors ${
-                  filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'cancelled'
-                    ? 'text-rose-600 dark:text-rose-400 underline font-bold'
-                    : ''
-                }`}
-                title="Click to view only cancelled rows"
-              >
-                {cancelledCount} cancelled
-              </button>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'duplicate') {
-                    updateFilters({ statuses: [] });
-                  } else {
-                    updateFilters({ statuses: ['Duplicate'] });
-                  }
-                }}
-                className={`hover:text-amber-600 font-semibold transition-colors ${
-                  filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'duplicate'
-                    ? 'text-amber-600 dark:text-amber-400 underline font-bold'
-                    : ''
-                }`}
-                title="Click to view only duplicate rows"
-              >
-                {duplicateCount} duplicate
-              </button>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'ignored') {
-                    updateFilters({ statuses: [] });
-                  } else {
-                    updateFilters({ statuses: ['Ignored'] });
-                  }
-                }}
-                className={`hover:text-slate-800 dark:hover:text-slate-200 font-semibold transition-colors ${
-                  filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'ignored'
-                    ? 'text-sky-600 dark:text-sky-400 underline font-bold'
-                    : ''
-                }`}
-                title="Click to view only ignored rows"
-              >
-                {ignoredCount} ignored
-              </button>
-            </div>
-          </div>
+          {/* Excluded status controls & Data issues only (hidden by default) */}
+          {showDiagnostics && (
+            <>
+              {/* Toggle: Include cancelled / duplicate / ignored & Quick counts */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleIncludeExcludedStatuses}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                    filters.includeExcludedStatuses
+                      ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 shadow-2xs'
+                      : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                  title="Toggle inclusion of Cancelled, Duplicate, and Ignored rows across dashboard"
+                >
+                  <div
+                    className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
+                      filters.includeExcludedStatuses
+                        ? 'bg-amber-600 border-amber-600 text-white'
+                        : 'border-slate-400 dark:border-slate-600'
+                    }`}
+                  >
+                    {filters.includeExcludedStatuses && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
+                  <span>Include cancelled / duplicate / ignored</span>
+                </button>
 
-          {/* Only Issues Toggle */}
-          <button
-            onClick={toggleOnlyIssues}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-              filters.onlyIssues
-                ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 shadow-xs'
-                : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-            title="Filter rows containing Check warnings"
-          >
-            <AlertCircle className={`w-3.5 h-3.5 ${filters.onlyIssues ? 'text-rose-500' : 'text-slate-400'}`} />
-            <span>Data issues only</span>
-          </button>
+                {/* Small counts near the filters: e.g. "13 cancelled · 72 duplicate · 0 ignored" */}
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800/80 text-[11px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'cancelled') {
+                        updateFilters({ statuses: [] });
+                      } else {
+                        updateFilters({ statuses: ['Cancelled'] });
+                      }
+                    }}
+                    className={`hover:text-rose-600 font-semibold transition-colors ${
+                      filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'cancelled'
+                        ? 'text-rose-600 dark:text-rose-400 underline font-bold'
+                        : ''
+                    }`}
+                    title="Click to view only cancelled rows"
+                  >
+                    {cancelledCount} cancelled
+                  </button>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'duplicate') {
+                        updateFilters({ statuses: [] });
+                      } else {
+                        updateFilters({ statuses: ['Duplicate'] });
+                      }
+                    }}
+                    className={`hover:text-amber-600 font-semibold transition-colors ${
+                      filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'duplicate'
+                        ? 'text-amber-600 dark:text-amber-400 underline font-bold'
+                        : ''
+                    }`}
+                    title="Click to view only duplicate rows"
+                  >
+                    {duplicateCount} duplicate
+                  </button>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'ignored') {
+                        updateFilters({ statuses: [] });
+                      } else {
+                        updateFilters({ statuses: ['Ignored'] });
+                      }
+                    }}
+                    className={`hover:text-slate-800 dark:hover:text-slate-200 font-semibold transition-colors ${
+                      filters.statuses.length === 1 && filters.statuses[0].toLowerCase() === 'ignored'
+                        ? 'text-sky-600 dark:text-sky-400 underline font-bold'
+                        : ''
+                    }`}
+                    title="Click to view only ignored rows"
+                  >
+                    {ignoredCount} ignored
+                  </button>
+                </div>
+              </div>
+
+              {/* Only Issues Toggle */}
+              <button
+                onClick={toggleOnlyIssues}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                  filters.onlyIssues
+                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 shadow-xs'
+                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+                title="Filter rows containing Check warnings"
+              >
+                <AlertCircle className={`w-3.5 h-3.5 ${filters.onlyIssues ? 'text-rose-500' : 'text-slate-400'}`} />
+                <span>Data issues only</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Third Row: Type Chips & Weekday Toggles */}

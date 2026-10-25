@@ -8,7 +8,9 @@ import {
   Database,
   Building2,
   Clock,
-  Calendar
+  Calendar,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -30,6 +32,8 @@ interface HeaderProps {
   duplicateCount: number;
   ignoredCount: number;
   onFilterOnlyStatus: (status: string) => void;
+  showDiagnostics: boolean;
+  onToggleDiagnostics: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -50,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
   duplicateCount,
   ignoredCount,
   onFilterOnlyStatus,
+  showDiagnostics,
+  onToggleDiagnostics,
 }) => {
   const formatTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -125,12 +131,15 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{newestTodoUpdated || '—'}</span>
               </span>
 
-              <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-
-              {/* Excluded by status */}
-              <span className="text-amber-700 dark:text-amber-400 font-medium hidden sm:inline">
-                {(cancelledCount + duplicateCount + ignoredCount).toLocaleString()} excluded
-              </span>
+              {/* Excluded by status (hidden by default) */}
+              {showDiagnostics && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                  <span className="text-amber-700 dark:text-amber-400 font-medium hidden sm:inline">
+                    {(cancelledCount + duplicateCount + ignoredCount).toLocaleString()} excluded
+                  </span>
+                </>
+              )}
 
               <span className="text-slate-300 dark:text-slate-700 hidden md:inline">•</span>
 
@@ -142,61 +151,92 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Small Excluded Status Quick Chips */}
-        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs">
-          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">
-            Excluded:
-          </span>
-          <button
-            type="button"
-            onClick={() => onFilterOnlyStatus('Cancelled')}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-900/60 transition-colors"
-            title="Click to view only cancelled inspections"
-          >
-            {cancelledCount} cancelled
-          </button>
-          <span className="text-slate-300 dark:text-slate-600">·</span>
-          <button
-            type="button"
-            onClick={() => onFilterOnlyStatus('Duplicate')}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-900/60 transition-colors"
-            title="Click to view only duplicate inspections"
-          >
-            {duplicateCount} duplicates
-          </button>
-          <span className="text-slate-300 dark:text-slate-600">·</span>
-          <button
-            type="button"
-            onClick={() => onFilterOnlyStatus('Ignored')}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition-colors"
-            title="Click to view only ignored inspections"
-          >
-            {ignoredCount} ignored
-          </button>
-        </div>
+        {/* Small Excluded Status Quick Chips (hidden by default) */}
+        {showDiagnostics && (
+          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs">
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">
+              Excluded:
+            </span>
+            <button
+              type="button"
+              onClick={() => onFilterOnlyStatus('Cancelled')}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-900/60 transition-colors"
+              title="Click to view only cancelled inspections"
+            >
+              {cancelledCount} cancelled
+            </button>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <button
+              type="button"
+              onClick={() => onFilterOnlyStatus('Duplicate')}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-900/60 transition-colors"
+              title="Click to view only duplicate inspections"
+            >
+              {duplicateCount} duplicates
+            </button>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <button
+              type="button"
+              onClick={() => onFilterOnlyStatus('Ignored')}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition-colors"
+              title="Click to view only ignored inspections"
+            >
+              {ignoredCount} ignored
+            </button>
+          </div>
+        )}
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Data Quality Toggle */}
+          {/* Simple Icon Toggle for Excluded & Data Quality (Hidden by default) */}
           <button
-            onClick={onOpenQualityPanel}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              issuesCount > 0
-                ? qualityPanelOpen
-                  ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
-                  : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
-                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+            type="button"
+            onClick={onToggleDiagnostics}
+            className={`p-2 rounded-lg border transition-all relative flex items-center justify-center ${
+              showDiagnostics
+                ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
+                : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
             }`}
-            title="Inspect rows with Check warnings"
+            aria-label={showDiagnostics ? "Hide excluded & data quality" : "Show excluded & data quality"}
+            title={
+              showDiagnostics
+                ? "Hide excluded & data quality"
+                : `Show excluded & data quality (${issuesCount} issues, ${(cancelledCount + duplicateCount + ignoredCount)} excluded)`
+            }
           >
-            <AlertTriangle className={`w-3.5 h-3.5 ${issuesCount > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
-            <span className="hidden sm:inline">Data Quality</span>
-            {issuesCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-white">
-                {issuesCount}
-              </span>
+            {showDiagnostics ? (
+              <Eye className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+            ) : (
+              <EyeOff className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            )}
+            {/* Subtle amber notification pip when hidden and issues/excluded exist */}
+            {!showDiagnostics && (issuesCount > 0 || (cancelledCount + duplicateCount + ignoredCount) > 0) && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
             )}
           </button>
+
+          {/* Data Quality Toggle - visible only when unhidden */}
+          {showDiagnostics && (
+            <button
+              onClick={onOpenQualityPanel}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                issuesCount > 0
+                  ? qualityPanelOpen
+                    ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
+                    : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+              }`}
+              title="Inspect rows with Check warnings"
+            >
+              <AlertTriangle className={`w-3.5 h-3.5 ${issuesCount > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
+              <span className="hidden sm:inline">Data Quality</span>
+              {issuesCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                  {issuesCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Definitions Modal Trigger with tooltip */}
           <button
