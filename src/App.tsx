@@ -11,6 +11,7 @@ import { DetailTable } from './components/DetailTable';
 import { DataQualityPanel } from './components/DataQualityPanel';
 import { AgencyBreakdownSection } from './components/AgencyBreakdownSection';
 import { DefinitionsModal } from './components/DefinitionsModal';
+import { PasteDataModal } from './components/PasteDataModal';
 
 // Charts (redundant ones removed per instructions)
 import { InspectionsPerDayChart } from './components/charts/InspectionsPerDayChart';
@@ -35,6 +36,8 @@ export default function App() {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [qualityPanelOpen, setQualityPanelOpen] = useState(false);
   const [definitionsOpen, setDefinitionsOpen] = useState(false);
+  const [pasteModalOpen, setPasteModalOpen] = useState(false);
+  const [isCustomData, setIsCustomData] = useState(false);
   // Excluded counts & Data quality tools hidden by default
   const [showDiagnostics, setShowDiagnostics] = useState(false);
 
@@ -46,6 +49,14 @@ export default function App() {
       }
       return next;
     });
+  };
+
+  const handleImportCustomRows = (rows: InspectionRow[], report: DataQualityReport) => {
+    setAllRows(rows);
+    setQualityReport(report);
+    setIsSampleData(false);
+    setIsCustomData(true);
+    setLastRefreshed(new Date());
   };
 
   // Dark/Light theme state
@@ -76,6 +87,7 @@ export default function App() {
       setAllRows(result.rows);
       setQualityReport(result.qualityReport);
       setIsSampleData(result.isSampleData);
+      setIsCustomData(false);
       setLastRefreshed(result.loadedAt);
     } catch (err) {
       console.error('Failed to load inspection data:', err);
@@ -277,6 +289,8 @@ export default function App() {
         onFilterOnlyStatus={filterOnlyStatus}
         showDiagnostics={showDiagnostics}
         onToggleDiagnostics={handleToggleDiagnostics}
+        onOpenPasteModal={() => setPasteModalOpen(true)}
+        isCustomData={isCustomData}
       />
 
       {/* Sticky Filter Bar */}
@@ -435,6 +449,13 @@ export default function App() {
       <DefinitionsModal
         isOpen={definitionsOpen}
         onClose={() => setDefinitionsOpen(false)}
+      />
+
+      {/* Paste / Import Data Modal */}
+      <PasteDataModal
+        isOpen={pasteModalOpen}
+        onClose={() => setPasteModalOpen(false)}
+        onImport={handleImportCustomRows}
       />
     </div>
   );

@@ -90,25 +90,29 @@ export function parseCalendarDate(raw: string | undefined | null): Date | null {
   const str = raw.replace(/[\u00A0\u200B\uFEFF]/g, ' ').trim();
   if (!str) return null;
 
-  // Try standard ISO: YYYY-MM-DD
-  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  // 1. Standard ISO: YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (isoMatch) {
     const year = parseInt(isoMatch[1], 10);
     const month = parseInt(isoMatch[2], 10) - 1;
     const day = parseInt(isoMatch[3], 10);
-    return new Date(year, month, day, 12, 0, 0);
+    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+      return new Date(year, month, day, 12, 0, 0);
+    }
   }
 
-  // Try Australian DD/MM/YYYY
-  const auSlashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (auSlashMatch) {
-    const day = parseInt(auSlashMatch[1], 10);
-    const month = parseInt(auSlashMatch[2], 10) - 1;
-    const year = parseInt(auSlashMatch[3], 10);
-    return new Date(year, month, day, 12, 0, 0);
+  // 2. Australian DD MM YYYY or DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const auMatch = str.match(/^(\d{1,2})[\s/.\-]+(\d{1,2})[\s/.\-]+(\d{4})$/);
+  if (auMatch) {
+    const day = parseInt(auMatch[1], 10);
+    const month = parseInt(auMatch[2], 10) - 1;
+    const year = parseInt(auMatch[3], 10);
+    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+      return new Date(year, month, day, 12, 0, 0);
+    }
   }
 
-  // Try "Mon 9 Nov 2026" or "Thu 1 Oct 2026" or "Monday 9 November 2026"
+  // 3. Try named month tokens, e.g. "Mon 9 Nov 2026" or "Thu 1 Oct 2026" or "Tuesday 8 September 2026"
   const clean = str.replace(/,/g, ' ').replace(/\s+/g, ' ');
   const tokens = clean.split(' ');
 
@@ -119,7 +123,7 @@ export function parseCalendarDate(raw: string | undefined | null): Date | null {
   for (const token of tokens) {
     const tLower = token.toLowerCase();
 
-    // Check month
+    // Check month name
     if (MONTH_MAP[tLower] !== undefined && month === null) {
       month = MONTH_MAP[tLower];
       continue;
@@ -146,7 +150,7 @@ export function parseCalendarDate(raw: string | undefined | null): Date | null {
     return new Date(year, month, day, 12, 0, 0);
   }
 
-  // Fallback to Date.parse
+  // 4. Fallback to Date.parse
   const fallbackTs = Date.parse(str);
   if (!isNaN(fallbackTs)) {
     const d = new Date(fallbackTs);
@@ -154,6 +158,133 @@ export function parseCalendarDate(raw: string | undefined | null): Date | null {
   }
 
   return null;
+}
+
+/**
+ * Extracts a calendar date embedded anywhere within free-form text
+ * (such as Basecamp to-do titles "13 10 2026 - NATALIA F - ROUTINES..."
+ * or list names "Tuesday 8 September 2026").
+ */
+export function extractDateFromText(text: string | undefined | null): Date | null {
+  if (!text || typeof text !== 'string') return null;
+  const str = text.trim();
+  if (!str) return null;
+
+  // Ignore generic non-date labels
+  const upper = str.toUpperCase();
+  if (upper === 'ROUTINE INSPECTIONS' || upper === 'ROUTINE' || upper === 'PCR' || upper === 'INSPECTIONS') {
+    return null;
+  }
+
+  // 1. Australian DD MM YYYY or DD/MM/YYYY or DD-MM-YYYY (e.g. "13 10 2026", "08/09/2026")
+  const auMatch = str.match(/\b([0-3]?\d)[\s/.\-]+(0?[1-9]|1[0-2])[\s/.\-]+(20\d{2})\b/);
+  if (auMatch) {
+    const day = parseInt(auMatch[1], 10);
+    const month = parseInt(auMatch[2], 10) - 1;
+    const year = parseInt(auMatch[3], 10);
+    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+      return new Date(year, month, day, 12, 0, 0);
+    }
+  }
+
+  // 2. Named month: e.g. "8 September 2026" or "Mon 9 Nov 2026" or "15th October 2026"
+  const namedMatch = str.match(/\b([0-3]?\d)(?:st|nd|rd|th)?\s+([a-zA-Z]{3,9})\s+(20\d{2})\b/);
+  if (namedMatch) {
+    const day = parseInt(namedMatch[1], 10);
+    const monthName = namedMatch[2].toLowerCase();
+    const year = parseInt(namedMatch[3], 10);
+    if (MONTH_MAP[monthName] !== undefined && day >= 1 && day <= 31) {
+      return new Date(year, MONTH_MAP[monthName], day, 12, 0, 0);
+    }
+  }
+
+  // 3. Month Name first: "September 8 2026"
+  const monthFirstMatch = str.match(/\b([a-zA-Z]{3,9})\s+([0-3]?\d)(?:st|nd|rd|th)?,?\s+(20\d{2})\b/);
+  if (monthFirstMatch) {
+    const monthName = monthFirstMatch[1].toLowerCase();
+    const day = parseInt(monthFirstMatch[2], 10);
+    const year = parseInt(monthFirstMatch[3], 10);
+    if (MONTH_MAP[monthName] !== undefined && day >= 1 && day <= 31) {
+      return new Date(year, MONTH_MAP[monthName], day, 12, 0, 0);
+    }
+  }
+
+  // 4. ISO format: YYYY-MM-DD
+  const isoMatch = str.match(/\b(20\d{2})[-/](0?[1-9]|1[0-2])[-/]([0-3]?\d)\b/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+      return new Date(year, month, day, 12, 0, 0);
+    }
+  }
+
+  return null;
+}
+
+export interface ResolvedInspectionDate {
+  date: Date | null;
+  dateStr: string;
+  displayDate: string;
+  dayOfWeek: number;
+  weekdayName: string;
+}
+
+/**
+ * Resolves the inspection date across candidate sources:
+ * 1. Date column (if present)
+ * 2. Raw title (Basecamp titles often start with "DD MM YYYY - ...")
+ * 3. List (e.g. "Tuesday 8 September 2026" or "02 06 2026 - Tuesday")
+ * 4. To-do updated timestamp (as last resort fallback)
+ */
+export function resolveInspectionDate(
+  rawDate: string | undefined | null,
+  rawTitle?: string | undefined | null,
+  list?: string | undefined | null,
+  todoUpdated?: string | undefined | null
+): ResolvedInspectionDate {
+  let parsedDate: Date | null = null;
+  const rawDateTrimmed = (rawDate || '').trim();
+
+  // 1. Try Date column if available
+  if (rawDateTrimmed) {
+    parsedDate = parseCalendarDate(rawDateTrimmed);
+    if (!parsedDate) {
+      parsedDate = extractDateFromText(rawDateTrimmed);
+    }
+  }
+
+  // 2. Fallback to Raw title (very common in Basecamp exports for routines & date lists)
+  if (!parsedDate && rawTitle) {
+    parsedDate = extractDateFromText(rawTitle);
+  }
+
+  // 3. Fallback to List column
+  if (!parsedDate && list) {
+    parsedDate = extractDateFromText(list);
+  }
+
+  // 4. Fallback to To-do updated timestamp
+  if (!parsedDate && todoUpdated) {
+    parsedDate = extractDateFromText(todoUpdated);
+  }
+
+  const dateStr = formatDateKey(parsedDate);
+  const dayOfWeek = parsedDate ? parsedDate.getDay() : -1;
+  const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekdayName = dayOfWeek >= 0 ? weekdayNames[dayOfWeek] : '';
+
+  // Display date: preserve original rawDate if given, otherwise format cleanly as "Tue 13 Oct 2026"
+  const displayDate = rawDateTrimmed || (parsedDate ? formatDisplayDate(parsedDate) : '');
+
+  return {
+    date: parsedDate,
+    dateStr,
+    displayDate,
+    dayOfWeek,
+    weekdayName,
+  };
 }
 
 export function formatDateKey(date: Date | null): string {

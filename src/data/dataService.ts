@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import { InspectionRow, DataQualityReport } from '../types';
-import { parseCalendarDate, formatDateKey } from '../utils/dateUtils';
+import { resolveInspectionDate, parseCalendarDate, formatDateKey } from '../utils/dateUtils';
 import { generateSampleData, RawInspectionRow } from './sampleData';
 
 // Published Jobs tab (gid=1145016181). If you delete and recreate the tab, update this link.
@@ -234,18 +234,19 @@ export function processRawRows(rawRows: RawInspectionRow[]): { rows: InspectionR
       else canonicalManagers.set(lowerKey, manager);
     }
 
-    // 7. Parse the date into a real calendar date
-    const parsedDate = parseCalendarDate(rawDate);
-    const dateStr = formatDateKey(parsedDate);
-    const dayOfWeek = parsedDate ? parsedDate.getDay() : -1;
-    const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weekdayName = dayOfWeek >= 0 ? weekdayNames[dayOfWeek] : '';
+    // 7. Parse / resolve the date into a real calendar date across Date, Raw title, List, or To-do updated
+    const resolvedDate = resolveInspectionDate(rawDate, rawTitle, list, todoUpdated);
+    const parsedDate = resolvedDate.date;
+    const dateStr = resolvedDate.dateStr;
+    const dayOfWeek = resolvedDate.dayOfWeek;
+    const weekdayName = resolvedDate.weekdayName;
+    const effectiveRawDate = resolvedDate.displayDate || rawDate;
 
     const row: InspectionRow = {
       id: todoId ? `${todoId}_${index}` : `row_${index}`,
       date: parsedDate,
       dateStr,
-      rawDate,
+      rawDate: effectiveRawDate,
       dayOfWeek,
       weekdayName,
       inspector,
@@ -322,6 +323,50 @@ function parseCsv(csvText: string): Promise<RawInspectionRow[]> {
   });
 }
 
+/**
+ * Parses raw pasted CSV or TSV data (with or without headers) into InspectionRow[] and DataQualityReport.
+ * Handles tab-delimited paste from spreadsheets even when the first row lacks a leading tab for blank Date.
+ */
+export function parsePastedOrCustomData(text: string): { rows: InspectionRow[]; qualityReport: DataQualityReport } {
+  const trimmed = text.trim();
+  if (!trimmed) return { rows: [], qualityReport: processRawRows([]).qualityReport };
+
+  const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return { rows: [], qualityReport: processRawRows([]).qualityReport };
+
+  const firstLine = lines[0];
+  const hasHeader = /date/i.test(firstLine) && /inspector/i.test(firstLine);
+
+  let formattedText = trimmed;
+  if (!hasHeader) {
+    const isTab = firstLine.includes('\t');
+    const delim = isTab ? '\t' : ',';
+    const headerRow = [
+      'Date', 'Inspector', 'Agency', 'Manager', 'Address', 'Type', 'Size',
+      'Job ref', 'Status', 'Source', 'To-do ID', 'To-do updated', 'List',
+      'Link', 'Raw title', 'Check', 'Note'
+    ].join(delim);
+
+    const fixedLines = lines.map((line) => {
+      const parts = line.split(delim);
+      if (parts.length >= 14 && parts[0] !== '' && !/^\d{4}/.test(parts[0]) && !/^\d{1,2}[-/\s]/.test(parts[0])) {
+        return delim + line;
+      }
+      return line;
+    });
+    formattedText = headerRow + '\n' + fixedLines.join('\n');
+  }
+
+  const parsed = Papa.parse<RawInspectionRow>(formattedText, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: (header) => header.replace(/^\uFEFF/, '').trim(),
+    transform: (value) => (typeof value === 'string' ? value.trim() : value),
+  });
+
+  return processRawRows(parsed.data || []);
+}
+
 function sampleResult(error: string | undefined, loadedAt: Date): FetchResult {
   const { rows, qualityReport } = processRawRows(generateSampleData());
   return {
@@ -355,10 +400,15 @@ export async function fetchInspectionData(forceSample = false): Promise<FetchRes
   let staleFetchedAt: string | undefined;
   let lastError = '';
 
-  const attempts = [
-    { url: `/api/sheet-csv?cb=${cb}`, direct: false },
-    { url: `${CSV_URL}&cb=${cb}`, direct: true },
-  ];
+  const isBrowser = typeof window !== 'undefined';
+  const attempts = isBrowser
+    ? [
+        { url: `/api/sheet-csv?cb=${cb}`, direct: false },
+        { url: `${CSV_URL}&cb=${cb}`, direct: true },
+      ]
+    : [
+        { url: `${CSV_URL}&cb=${cb}`, direct: true },
+      ];
 
   for (const { url, direct } of attempts) {
     try {
