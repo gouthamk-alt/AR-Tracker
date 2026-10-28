@@ -317,10 +317,11 @@ export function formatShortDate(date: Date | null): string {
  * Rules:
  * - Today: today through today
  * - Yesterday: today minus 1 day through today minus 1 day
+ * - This week: Sunday through Saturday of current week (the week that includes today's date, Week = Sun to Sat)
+ * - Last week: Sunday through Saturday of previous week (Week = Sun to Sat)
  * - Last 7 days: today minus 6 days through today
  * - Last 14 days: today minus 13 days through today
- * - This week: Monday of current week through today
- * - This month: 1st of current month through today
+ * - This month: 1st of current month through last day of current month (includes today's date)
  * - Last month: full previous calendar month
  * - Next 7 days: today through today + 6 days
  * - Upcoming: today onwards (to is empty string)
@@ -343,12 +344,22 @@ export function getPresetDates(preset: DatePreset): { from: string; to: string }
   }
 
   if (preset === 'this_week') {
-    // Monday of current week through today
+    // Week = Sun to Sat: full week that includes today's date
     const dObj = new Date(today.year, today.month - 1, today.day, 12, 0, 0);
-    const dayOfWeek = dObj.getDay(); // 0 is Sun, 1 is Mon, 6 is Sat
-    const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const mondayStr = addDaysToDateStr(todayStr, diffToMon);
-    return { from: mondayStr, to: todayStr };
+    const dayOfWeek = dObj.getDay(); // 0 is Sun, 1 is Mon, ..., 6 is Sat
+    const sundayStr = addDaysToDateStr(todayStr, -dayOfWeek);
+    const saturdayStr = addDaysToDateStr(sundayStr, 6);
+    return { from: sundayStr, to: saturdayStr };
+  }
+
+  if (preset === 'last_week') {
+    // Week = Sun to Sat: previous full week (Sunday to Saturday)
+    const dObj = new Date(today.year, today.month - 1, today.day, 12, 0, 0);
+    const dayOfWeek = dObj.getDay();
+    const currentSundayStr = addDaysToDateStr(todayStr, -dayOfWeek);
+    const prevSundayStr = addDaysToDateStr(currentSundayStr, -7);
+    const prevSaturdayStr = addDaysToDateStr(prevSundayStr, 6);
+    return { from: prevSundayStr, to: prevSaturdayStr };
   }
 
   if (preset === 'last_7_days') {
@@ -364,9 +375,11 @@ export function getPresetDates(preset: DatePreset): { from: string; to: string }
   }
 
   if (preset === 'this_month') {
-    // 1st of month through today
+    // 1st of month through last day of current month (the month that includes today's date)
     const firstOfMonthStr = `${today.year}-${String(today.month).padStart(2, '0')}-01`;
-    return { from: firstOfMonthStr, to: todayStr };
+    const lastDayOfMonth = new Date(today.year, today.month, 0, 12, 0, 0).getDate();
+    const lastOfMonthStr = `${today.year}-${String(today.month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+    return { from: firstOfMonthStr, to: lastOfMonthStr };
   }
 
   if (preset === 'last_month') {

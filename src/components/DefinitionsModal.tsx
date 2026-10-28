@@ -49,9 +49,9 @@ export const DefinitionsModal: React.FC<DefinitionsModalProps> = ({ isOpen, onCl
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-start gap-3">
             <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">"Per day" & Working days:</span>{' '}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">Period Presets (Week = Sun to Sat):</span>{' '}
               <span className="text-slate-600 dark:text-slate-300">
-                Counts rows by scheduled calendar Date. "Average per working day" divides total inspections by the number of unique calendar days that had at least one inspection.
+                "This week" spans the full calendar week (Sunday to Saturday) containing today's date. "This month" spans the full current calendar month (1st through last day). "Average per working day" divides total inspections by unique scheduled calendar days.
               </span>
             </div>
           </div>

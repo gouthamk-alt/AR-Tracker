@@ -34,6 +34,7 @@ export type DatePreset =
   | 'today'
   | 'yesterday'
   | 'this_week'
+  | 'last_week'
   | 'last_7_days'
   | 'last_14_days'
   | 'this_month'

@@ -141,18 +141,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     }));
   }, [statusCounts]);
 
-  // Date presets list (including Next 7 days and Upcoming)
-  const datePresets: { id: DatePreset; label: string }[] = [
-    { id: 'all', label: 'All time' },
-    { id: 'today', label: 'Today' },
-    { id: 'yesterday', label: 'Yesterday' },
-    { id: 'this_week', label: 'This week' },
-    { id: 'last_7_days', label: 'Last 7 days' },
-    { id: 'last_14_days', label: 'Last 14 days' },
-    { id: 'this_month', label: 'This month' },
-    { id: 'last_month', label: 'Last month' },
-    { id: 'next_7_days', label: 'Next 7 days' },
-    { id: 'upcoming', label: 'Upcoming' },
+  // Date presets list (including Last week, Next 7 days and Upcoming)
+  const datePresets: { id: DatePreset; label: string; tooltip: string }[] = [
+    { id: 'all', label: 'All time', tooltip: 'Show all inspections across all dates' },
+    { id: 'today', label: 'Today', tooltip: "Today's inspections" },
+    { id: 'yesterday', label: 'Yesterday', tooltip: "Yesterday's inspections" },
+    { id: 'this_week', label: 'This week', tooltip: 'This week: Sunday to Saturday (includes today)' },
+    { id: 'last_week', label: 'Last week', tooltip: 'Last week: previous Sunday to Saturday' },
+    { id: 'last_7_days', label: 'Last 7 days', tooltip: 'Last 7 calendar days through today' },
+    { id: 'last_14_days', label: 'Last 14 days', tooltip: 'Last 14 calendar days through today' },
+    { id: 'this_month', label: 'This month', tooltip: 'Current month (1st through last day of month)' },
+    { id: 'last_month', label: 'Last month', tooltip: 'Full previous calendar month' },
+    { id: 'next_7_days', label: 'Next 7 days', tooltip: 'Next 7 calendar days starting today' },
+    { id: 'upcoming', label: 'Upcoming', tooltip: 'Today onwards' },
   ];
 
   const handleSelectPreset = (preset: DatePreset) => {
@@ -196,6 +197,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 <button
                   key={p.id}
                   onClick={() => handleSelectPreset(p.id)}
+                  title={p.tooltip}
                   className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
                     isActive
                       ? 'bg-sky-600 text-white shadow-xs shadow-sky-600/25 font-bold'
