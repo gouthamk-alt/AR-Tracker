@@ -108,6 +108,10 @@ export function filterRows(rows: InspectionRow[], filters: FilterState): Inspect
   return rows.filter((r) => rowMatchesFilter(r, filters));
 }
 
+export function filterRowsIgnoringDate(rows: InspectionRow[], filters: FilterState): InspectionRow[] {
+  return rows.filter((r) => rowMatchesFilter(r, filters, 'datePreset'));
+}
+
 /**
  * Computes live counts for a specific field based on all other active filters.
  */

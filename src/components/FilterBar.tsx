@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   Check,
   Eye,
-  EyeOff
+  EyeOff,
+  GitCompareArrows,
+  BarChart3
 } from 'lucide-react';
 import { FilterState, DatePreset, InspectionRow } from '../types';
 import { getPresetDates, getPerthTodayString, formatPerthDisplayDate } from '../utils/dateUtils';
@@ -40,6 +42,8 @@ interface FilterBarProps {
   activeFilterCount: number;
   showDiagnostics?: boolean;
   onToggleDiagnostics?: () => void;
+  viewMode?: 'standard' | 'yoy';
+  onChangeViewMode?: (mode: 'standard' | 'yoy') => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -61,18 +65,28 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   activeFilterCount,
   showDiagnostics = false,
   onToggleDiagnostics,
+  viewMode = 'standard',
+  onChangeViewMode,
 }) => {
   // Real current date in Australia/Perth timezone (never uses dataset max date)
   const perthTodayStr = useMemo(() => getPerthTodayString(), []);
   const perthTodayFormatted = useMemo(() => formatPerthDisplayDate(perthTodayStr), [perthTodayStr]);
 
+  // In YoY mode, ignore single-period date bounds when computing dropdown counts
+  const countFilters = useMemo<FilterState>(() => {
+    if (viewMode === 'yoy') {
+      return { ...filters, datePreset: 'all', dateFrom: '', dateTo: '' };
+    }
+    return filters;
+  }, [filters, viewMode]);
+
   // Compute live option counts for all multi-selects based on other active filters
-  const inspectorCounts = useMemo(() => getFieldCounts(allRows, filters, 'inspector'), [allRows, filters]);
-  const agencyCounts = useMemo(() => getFieldCounts(allRows, filters, 'agency'), [allRows, filters]);
-  const managerCounts = useMemo(() => getFieldCounts(allRows, filters, 'manager'), [allRows, filters]);
-  const sizeCounts = useMemo(() => getFieldCounts(allRows, filters, 'size'), [allRows, filters]);
-  const typeCounts = useMemo(() => getFieldCounts(allRows, filters, 'type'), [allRows, filters]);
-  const statusCounts = useMemo(() => getFieldCounts(allRows, filters, 'status'), [allRows, filters]);
+  const inspectorCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'inspector'), [allRows, countFilters]);
+  const agencyCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'agency'), [allRows, countFilters]);
+  const managerCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'manager'), [allRows, countFilters]);
+  const sizeCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'size'), [allRows, countFilters]);
+  const typeCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'type'), [allRows, countFilters]);
+  const statusCounts = useMemo(() => getFieldCounts(allRows, countFilters, 'status'), [allRows, countFilters]);
 
   const { cancelledCount, duplicateCount, ignoredCount } = useMemo(() => {
     let c = 0;
@@ -86,6 +100,40 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     });
     return { cancelledCount: c, duplicateCount: d, ignoredCount: i };
   }, [allRows]);
+
+  // Available YYYY-MM months present in dataset (plus all 12 months of current Perth year)
+  const monthOptions = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const ymSet = new Set<string>();
+    const currentYear = perthTodayStr.slice(0, 4);
+    for (let m = 1; m <= 12; m++) {
+      ymSet.add(`${currentYear}-${String(m).padStart(2, '0')}`);
+    }
+    allRows.forEach((r) => {
+      if (r.dateStr && r.dateStr.length >= 7) {
+        ymSet.add(r.dateStr.slice(0, 7));
+      }
+    });
+    return Array.from(ymSet)
+      .sort((a, b) => b.localeCompare(a))
+      .map((ym) => {
+        const [y, m] = ym.split('-').map(Number);
+        return { value: ym, label: `${monthNames[(m || 1) - 1]} ${y}` };
+      });
+  }, [allRows, perthTodayStr]);
+
+  const activeYearMonth = useMemo(() => {
+    if (!filters.dateFrom || !filters.dateTo) return '';
+    const ymFrom = filters.dateFrom.slice(0, 7);
+    const ymTo = filters.dateTo.slice(0, 7);
+    if (ymFrom !== ymTo) return '';
+    const [y, m] = ymFrom.split('-').map(Number);
+    const lastDay = String(new Date(y, m, 0, 12, 0, 0).getDate()).padStart(2, '0');
+    if (filters.dateFrom === `${ymFrom}-01` && filters.dateTo === `${ymFrom}-${lastDay}`) {
+      return ymFrom;
+    }
+    return '';
+  }, [filters.dateFrom, filters.dateTo]);
 
   // Unique sorted options
   const inspectorOptions = useMemo(() => {
@@ -174,13 +222,39 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div className="sticky top-16 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs transition-colors py-3">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-        {/* Top Row: Date Presets & Manual inputs */}
+        {/* Top Row: View Mode Switch, Date Presets & Manual inputs */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          {/* Preset Buttons & Perth Today Indicator */}
+          {/* View Mode Switcher + Preset Buttons & Perth Today Indicator */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 hidden lg:inline">
-              Period:
-            </span>
+            {onChangeViewMode && (
+              <div className="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5 mr-1">
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('standard')}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                    viewMode === 'standard'
+                      ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Overview</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangeViewMode('yoy')}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                    viewMode === 'yoy'
+                      ? 'bg-sky-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                  title="Compare years (e.g. Nov this year vs last year, weekly trends, report type changes)"
+                >
+                  <GitCompareArrows className="w-3.5 h-3.5" />
+                  <span>Compare Years (YoY)</span>
+                </button>
+              </div>
+            )}
 
             {/* Visual Perth Today confirmation badge */}
             <div
@@ -191,64 +265,106 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <span>Perth today: <span className="font-bold underline decoration-emerald-400 underline-offset-2">{perthTodayFormatted}</span></span>
             </div>
 
-            {datePresets.map((p) => {
-              const isActive = filters.datePreset === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => handleSelectPreset(p.id)}
-                  title={p.tooltip}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-sky-600 text-white shadow-xs shadow-sky-600/25 font-bold'
-                      : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
+            {viewMode === 'standard' ? (
+              <>
+                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 hidden lg:inline">
+                  Period:
+                </span>
+                {datePresets.map((p) => {
+                  const isActive = filters.datePreset === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelectPreset(p.id)}
+                      title={p.tooltip}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-sky-600 text-white shadow-xs shadow-sky-600/25 font-bold'
+                          : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </>
+            ) : (
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium px-2">
+                Comparing years — Inspector, Agency, Manager, Type, Status &amp; Search filters below apply to both years.
+              </span>
+            )}
           </div>
 
-          {/* Manual Date Inputs */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
-              <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="date"
-                value={filters.dateFrom}
-                onChange={(e) =>
-                  updateFilters({
-                    datePreset: 'custom',
-                    dateFrom: e.target.value,
-                  })
-                }
-                className="bg-transparent border-0 focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
-                aria-label="From date"
-              />
-              <span className="text-slate-400">to</span>
-              <input
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) =>
-                  updateFilters({
-                    datePreset: 'custom',
-                    dateTo: e.target.value,
-                  })
-                }
-                className="bg-transparent border-0 focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
-                aria-label="To date"
-              />
-              {(filters.dateFrom || filters.dateTo) && (
-                <button
-                  onClick={() => updateFilters({ datePreset: 'all', dateFrom: '', dateTo: '' })}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  title="Clear dates"
+          {/* Manual Date Inputs & Month Jump (Standard mode) + Clear All */}
+          <div className="flex flex-wrap items-center gap-2">
+            {viewMode === 'standard' && (
+              <>
+                <select
+                  value={activeYearMonth}
+                  onChange={(e) => {
+                    const ym = e.target.value;
+                    if (!ym) {
+                      updateFilters({ datePreset: 'all', dateFrom: '', dateTo: '' });
+                      return;
+                    }
+                    const [y, m] = ym.split('-').map(Number);
+                    const lastDay = String(new Date(y, m, 0, 12, 0, 0).getDate()).padStart(2, '0');
+                    updateFilters({
+                      datePreset: 'custom',
+                      dateFrom: `${ym}-01`,
+                      dateTo: `${ym}-${lastDay}`,
+                    });
+                  }}
+                  className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer"
+                  aria-label="Filter by specific month"
+                  title="Jump to any month"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
+                  <option value="">Month...</option>
+                  {monthOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) =>
+                    updateFilters({
+                      datePreset: 'custom',
+                      dateFrom: e.target.value,
+                    })
+                  }
+                  className="bg-transparent border-0 focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
+                  aria-label="From date"
+                />
+                <span className="text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) =>
+                    updateFilters({
+                      datePreset: 'custom',
+                      dateTo: e.target.value,
+                    })
+                  }
+                  className="bg-transparent border-0 focus:outline-hidden text-xs text-slate-700 dark:text-slate-200"
+                  aria-label="To date"
+                />
+                  {(filters.dateFrom || filters.dateTo) && (
+                    <button
+                      onClick={() => updateFilters({ datePreset: 'all', dateFrom: '', dateTo: '' })}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      title="Clear dates"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Clear All Button */}
             {activeFilterCount > 0 && (

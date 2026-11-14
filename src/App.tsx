@@ -12,6 +12,7 @@ import { DataQualityPanel } from './components/DataQualityPanel';
 import { AgencyBreakdownSection } from './components/AgencyBreakdownSection';
 import { DefinitionsModal } from './components/DefinitionsModal';
 import { PasteDataModal } from './components/PasteDataModal';
+import { YearComparisonView } from './components/YearComparisonView';
 
 // Charts (redundant ones removed per instructions)
 import { InspectionsPerDayChart } from './components/charts/InspectionsPerDayChart';
@@ -24,7 +25,7 @@ import { SizeDistributionChart } from './components/charts/SizeDistributionChart
 import { fetchInspectionData } from './data/dataService';
 import { InspectionRow, DataQualityReport } from './types';
 import { useFilterState } from './hooks/useFilterState';
-import { filterRows, calculateKpis, isExcludedStatus } from './utils/filterEngine';
+import { filterRows, filterRowsIgnoringDate, calculateKpis, isExcludedStatus } from './utils/filterEngine';
 import { getPresetDates } from './utils/dateUtils';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 
@@ -40,6 +41,8 @@ export default function App() {
   const [isCustomData, setIsCustomData] = useState(false);
   // Excluded counts & Data quality tools hidden by default
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  // View Mode: Standard dashboard vs Year-over-Year comparison
+  const [viewMode, setViewMode] = useState<'standard' | 'yoy'>('standard');
 
   const handleToggleDiagnostics = () => {
     setShowDiagnostics((prev) => {
@@ -130,9 +133,14 @@ export default function App() {
     activeFilterCount,
   } = useFilterState();
 
-  // Filtered rows
+  // Filtered rows (standard mode)
   const filteredRows = useMemo(() => {
     return filterRows(allRows, filters);
+  }, [allRows, filters]);
+
+  // Filtered rows ignoring single-period date preset (YoY comparison mode)
+  const yoyFilteredRows = useMemo(() => {
+    return filterRowsIgnoringDate(allRows, filters);
   }, [allRows, filters]);
 
   // KPI Metrics
@@ -313,6 +321,8 @@ export default function App() {
         activeFilterCount={activeFilterCount}
         showDiagnostics={showDiagnostics}
         onToggleDiagnostics={handleToggleDiagnostics}
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
       />
 
       {/* Main Content Body */}
@@ -338,6 +348,8 @@ export default function App() {
               <div className="h-80 rounded-2xl bg-slate-200 dark:bg-slate-800" />
             </div>
           </div>
+        ) : viewMode === 'yoy' ? (
+          <YearComparisonView rows={yoyFilteredRows} isDark={isDark} />
         ) : (
           <>
             {/* KPI Cards */}
